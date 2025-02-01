@@ -1,5 +1,14 @@
-run = "cowsay Configure me!"
-entrypoint = "README.md"
+modules = ["nodejs-23"]
+run = "cd www && npm start"
+compile = "cd rust-wasm && wasm-pack build"
+onBoot = ["rustup", "default", "stable"]
 
 [nix]
 channel = "stable-24_05"
+
+[[ports]]
+localPort = 8080
+externalPort = 80
+
+[env]
+NODE_OPTIONS = "--openssl-legacy-provider"
