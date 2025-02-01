@@ -12,3 +12,9 @@ externalPort = 80
 
 [env]
 NODE_OPTIONS = "--openssl-legacy-provider"
+
+[languages.javascript]
+pattern = "**/*.js"
+
+[languages.rust]
+pattern = "**/*.rs"

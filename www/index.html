@@ -2,10 +2,18 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Hello wasm-pack!</title>
+    <title>Rust WASM Fourier</title>
+    <style>
+      #render-canvas {
+        background-color: black;
+      }
+    </style>
   </head>
   <body>
     <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+    <canvas id="render-canvas" width=1200 height=800></canvas><br>
+    <textarea id="svgpath" rows=10 cols=70>M140 20C73 20 20 74 20 140c0 135 136 170 228 303 88-132 229-173 229-303 0-66-54-120-120-120-48 0-90 28-109 69-19-41-60-69-108-69z</textarea><br>
+    <button id="render-button">Render</button>
     <script src="./bootstrap.js"></script>
   </body>
 </html>
