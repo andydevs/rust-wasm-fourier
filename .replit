@@ -1,7 +1,6 @@
 modules = ["nodejs-23"]
 run = "cd www && npm start"
 compile = "cd rust-wasm && wasm-pack build"
-onBoot = ["rustup", "default", "stable"]
 
 [nix]
 channel = "stable-24_05"
@@ -18,3 +17,14 @@ pattern = "**/*.js"
 
 [languages.rust]
 pattern = "**/*.rs"
+
+[workflows]
+
+[[workflows.workflow]]
+name = "Build WASM"
+mode = "sequential"
+author = 403743
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd rust-wasm && wasm-pack build"

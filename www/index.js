@@ -1,47 +1,44 @@
 import * as wasm from "rust-wasm";
-import { memory } from "rust-wasm/rust_wasm_bg.wasm"
-var svgpath = require('svgpath')
-const getBounds = require('svg-path-bounds')
-const msPerS = 1000
+import { memory } from "rust-wasm/rust_wasm_bg.wasm";
+var svgpath = require("svgpath");
+const getBounds = require("svg-path-bounds");
+const msPerS = 1000;
 
 // Components
-let svgPathTextArea = document.getElementById('svgpath')
-let canvas = document.getElementById('render-canvas')
-let renderBtn = document.getElementById('render-button')
-let ctx = canvas.getContext('2d')
-ctx.strokeStyle = '#ffffff'
-let width = canvas.width
-let height = canvas.height
-let originX = width/2
-let originY = height/2
-
+let svgPathTextArea = document.getElementById("svgpath");
+let canvas = document.getElementById("render-canvas");
+let renderBtn = document.getElementById("render-button");
+let ctx = canvas.getContext("2d");
+ctx.strokeStyle = "#ffffff";
+let width = canvas.width;
+let height = canvas.height;
+let originX = width / 2;
+let originY = height / 2;
 
 function animate(onFrame) {
-    let s = Date.now()
+    let s = Date.now();
     function loop() {
-        let dt = (Date.now() - s) / msPerS
-        onFrame({ dt })
-        s = Date.now()
-        requestAnimationFrame(loop)
+        let dt = (Date.now() - s) / msPerS;
+        onFrame({ dt });
+        s = Date.now();
+        requestAnimationFrame(loop);
     }
-    requestAnimationFrame(loop)
+    requestAnimationFrame(loop);
 }
-
-
 
 function getNewPath(e) {
     // Read SVG path from textarea
-    let path = svgPathTextArea.value
+    let path = svgPathTextArea.value;
 
     // Transform SVG path
-    let [l, u, r, d] = getBounds(path)
-    let pathCenterX = (r - l)/2
-    let pathCenterY = (d - u)/2
+    let [l, u, r, d] = getBounds(path);
+    let pathCenterX = (r - l) / 2;
+    let pathCenterY = (d - u) / 2;
     let transformed = svgpath(path)
         .translate(originX - pathCenterX, originY - pathCenterY)
-        .toString()
+        .toString();
 
-    return transformed
+    return transformed;
 }
 
 // Display SVG
@@ -56,51 +53,53 @@ function getNewPath(e) {
 // ctx.stroke()
 
 // Draw phasor
-let pAni = wasm.PhasorAnimation.randomized()
+let pAni = wasm.PhasorAnimation.simple();
 
-let points = []
-let maxpoints = 100
+let points = [];
+let maxpoints = 100;
 
 animate(({ dt }) => {
-    pAni.update(dt)
-    let arm_state = pAni.get_arm_state()
-    let arm_radii = pAni.get_arm_radii()
+    pAni.update(dt);
+    let arm_state = pAni.get_arm_state();
+    console.log(arm_state)
 
     // Construct arm from state
-    let arm = arm_state
-        .map((s) => ({
-            x: originX + s.x,
-            y: originY + s.y
-        }))
-    let last = arm[arm.length - 1]
-    points.push(last)
+    let arm = arm_state.map((s) => ({
+        x: originX + s.x,
+        y: originY + s.y,
+        r: s.r
+    }));
+    let last = arm[arm.length - 1];
+    points.push(last);
     while (points.length > maxpoints) {
-        points.shift()
+        points.shift();
     }
 
-    ctx.clearRect(0, 0, width, height)
-    
-    ctx.strokeStyle = '#cccccc'
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    ctx.moveTo(originX, originY)
-    arm.forEach(({ x, y }) => { ctx.lineTo(x, y) })
-    ctx.stroke()
+    ctx.clearRect(0, 0, width, height);
 
-    ctx.strokeStyle = '#999999'
-    ctx.lineWidth = 1
-    arm.forEach(({x, y}, i) => {
-        ctx.beginPath()
-        ctx.arc(x, y, arm_radii[i], 0, 2*Math.PI)
-        ctx.stroke()
-    })
+    ctx.strokeStyle = "#555";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(originX, originY);
+    arm.forEach(({ x, y }) => {
+        ctx.lineTo(x, y);
+    });
+    ctx.stroke();
 
-    ctx.strokeStyle = '#ffffff'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.moveTo(points[0].x, points[0].y)
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 1;
+    arm.forEach(({ x, y, r }) => {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, 2 * Math.PI);
+        ctx.stroke();
+    });
+
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
     points.slice(1).forEach(({ x, y }) => {
-        ctx.lineTo(x, y)
-    })
-    ctx.stroke()
-})
+        ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+});

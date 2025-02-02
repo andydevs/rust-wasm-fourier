@@ -9,20 +9,19 @@ macro_rules! log {
     }
 }
 
+macro_rules! safe_div {
+    ( $a:expr, $b:expr, $z:literal ) => {
+        (if ($b == $z) { $a } else { $a / $b })
+    }
+}
+
 use wasm_bindgen::prelude::*;
 use std::f64::consts::PI;
 use js_sys::Math::random;
 
-const PHASOR_NUMBER: usize = 25;
-const FUNDAMENTAL_FREQ: f64 = 2.*PI / 5.;
+const PHASOR_NUMBER: i32 = 24;
+const FUNDAMENTAL_FREQ: f64 = 1.;
 const MAX_RAD: f64 = 100.0;
-
-#[wasm_bindgen]
-#[derive(Clone, Debug)]
-struct Point {
-    pub x: f64,
-    pub y: f64
-}
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug)]
@@ -51,60 +50,60 @@ impl Phasor {
 }
 
 #[wasm_bindgen]
-struct PhasorAnimation {
-    phasors: Vec<Phasor>,
-    arm_points: Vec<Point>
+#[derive(Clone, Debug)]
+struct ArmPoint {
+    pub x: f64,
+    pub y: f64,
+    pub r: f64
 }
 
-fn build_arm_from_phasors(phasors: &Vec<Phasor>) -> Vec<Point> {
-    let arm = phasors.iter()
-        .scan((0., 0.), |s, p| {
-            let (x, y) = *s;
-            let new_x = x + p.real;
-            let new_y = y + p.imag;
-            *s = (new_x, new_y);
-            return Some(*s)
-        })
-        .map(|s| { Point { x: s.0, y: s.1 } })
-        .collect();
-    arm
+#[wasm_bindgen]
+struct PhasorAnimation {
+    phasors: Vec<Phasor>,
 }
 
 #[wasm_bindgen]
 impl PhasorAnimation {
-    pub fn simple() -> Self {
-        let phasors: Vec<Phasor> = (0..PHASOR_NUMBER)
-            .map(|_i| { Phasor::from_polar(0.0, MAX_RAD) })
-            .collect();
-        let arm_points = build_arm_from_phasors(&phasors);
-        Self { phasors: phasors, arm_points: arm_points }
+    fn frequencies() -> impl Iterator<Item = i32> {
+        let a = (1..PHASOR_NUMBER).flat_map(|i| { [i, -i] });
+        let z = std::iter::once(0 as i32);
+        z.chain(a)
     }
+    
+    fn build_from_map(f: impl (Fn(i32) -> Phasor)) -> Self
+    {
+        Self { phasors: PhasorAnimation::frequencies().map(f).collect() }
+    }
+    
+    pub fn simple() -> Self {
+        Self::build_from_map(|i| { 
+            Phasor::from_polar(PI/2., safe_div!(MAX_RAD, (i as f64), 0.0))
+        })
+    }
+    
     pub fn randomized() -> Self {
-        let phasors: Vec<Phasor> = (0..PHASOR_NUMBER)
-            .map(|i| { 
-                Phasor::from_polar(
-                    2.*PI * random(), 
-                    if i == 0 { 0.0 } else { MAX_RAD / (i as f64) }
-                )
-            })
-            .collect();
-        let arm_points = build_arm_from_phasors(&phasors);
-        Self { phasors: phasors, arm_points: arm_points }
+        Self::build_from_map(|i| { 
+            Phasor::from_polar(2.*PI * random(), safe_div!(MAX_RAD, (i as f64), 0.0))
+        })
     }
 
     pub fn update(&mut self, dt: f64) {
-        self.phasors = self.phasors.iter()
-            .enumerate()
-            .map(|(i, p)| { p.rotate(i as f64, dt) })
+        self.phasors = PhasorAnimation::frequencies()
+            .zip(self.phasors.iter())
+            .map(|(n, p)| { p.rotate(n as f64, dt) })
             .collect();
-        self.arm_points = build_arm_from_phasors(&self.phasors);
     }
 
-    pub fn get_arm_state(&self) -> Box<[Point]> {
-        self.arm_points.clone().into_boxed_slice()
-    }
-
-    pub fn get_arm_radii(&self) -> Box<[f64]> {
-        self.phasors.iter().map(Phasor::magnitude).collect::<Vec<f64>>().into_boxed_slice()
+    pub fn get_arm_state(&self) -> Vec<ArmPoint> {
+        self.phasors.iter()
+            .scan((0., 0.), |s, p| {
+                let (x, y) = *s;
+                let new_x = x + p.real;
+                let new_y = y + p.imag;
+                *s = (new_x, new_y);
+                return Some((*s, p.magnitude()))
+            })
+            .map(|(s, m)| { ArmPoint { x: s.0, y: s.1, r: m } })
+            .collect()
     }
 }
