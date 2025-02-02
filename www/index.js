@@ -55,51 +55,43 @@ function getNewPath(e) {
 // Draw phasor
 let pAni = wasm.PhasorAnimation.simple();
 
-let points = [];
-let maxpoints = 100;
 
 animate(({ dt }) => {
     pAni.update(dt);
     let arm_state = pAni.get_arm_state();
-    console.log(arm_state)
+    let trail = pAni.get_trail_state();
 
     // Construct arm from state
     let arm = arm_state.map((s) => ({
         x: originX + s.x,
         y: originY + s.y,
         r: s.r
-    }));
-    let last = arm[arm.length - 1];
-    points.push(last);
-    while (points.length > maxpoints) {
-        points.shift();
-    }
+    }))
 
-    ctx.clearRect(0, 0, width, height);
+    ctx.clearRect(0, 0, width, height)
 
     ctx.strokeStyle = "#555";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(originX, originY);
+    ctx.moveTo(originX, originY)
     arm.forEach(({ x, y }) => {
-        ctx.lineTo(x, y);
-    });
-    ctx.stroke();
+        ctx.lineTo(x, y)
+    })
+    ctx.stroke()
 
-    ctx.strokeStyle = "#333";
+    ctx.strokeStyle = "#333"
     ctx.lineWidth = 1;
     arm.forEach(({ x, y, r }) => {
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, 2 * Math.PI);
-        ctx.stroke();
-    });
+        ctx.beginPath()
+        ctx.arc(x, y, r, 0, 2 * Math.PI)
+        ctx.stroke()
+    })
 
     ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    points.slice(1).forEach(({ x, y }) => {
-        ctx.lineTo(x, y);
-    });
-    ctx.stroke();
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    trail.forEach(({ x, y }, i) => {
+        ctx[i == 0 ? 'moveTo' : 'lineTo'](originX + x, originY + y)
+    })
+    ctx.stroke()
 });

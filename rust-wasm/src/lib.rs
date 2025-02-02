@@ -18,10 +18,12 @@ macro_rules! safe_div {
 use wasm_bindgen::prelude::*;
 use std::f64::consts::PI;
 use js_sys::Math::random;
+use std::collections::VecDeque;
 
 const PHASOR_NUMBER: i32 = 24;
 const FUNDAMENTAL_FREQ: f64 = 1.;
 const MAX_RAD: f64 = 100.0;
+const TRAIL_MAX_POINTS: usize = 100;
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug)]
@@ -58,8 +60,16 @@ struct ArmPoint {
 }
 
 #[wasm_bindgen]
+#[derive(Clone, Debug)]
+struct TrailPoint {
+    pub x: f64,
+    pub y: f64
+}
+
+#[wasm_bindgen]
 struct PhasorAnimation {
     phasors: Vec<Phasor>,
+    trail: VecDeque<TrailPoint>
 }
 
 #[wasm_bindgen]
@@ -72,7 +82,10 @@ impl PhasorAnimation {
     
     fn build_from_map(f: impl (Fn(i32) -> Phasor)) -> Self
     {
-        Self { phasors: PhasorAnimation::frequencies().map(f).collect() }
+        Self { 
+            phasors: PhasorAnimation::frequencies().map(f).collect(),
+            trail: VecDeque::new()
+        }
     }
     
     pub fn simple() -> Self {
@@ -88,10 +101,22 @@ impl PhasorAnimation {
     }
 
     pub fn update(&mut self, dt: f64) {
+        // Rotate Phasors
         self.phasors = PhasorAnimation::frequencies()
             .zip(self.phasors.iter())
             .map(|(n, p)| { p.rotate(n as f64, dt) })
             .collect();
+
+        // Get last point
+        let (x, y) = self.phasors.iter()
+            .fold((0., 0.), |(x, y), p| { (x + p.real, y + p.imag ) });
+        let trail_point = TrailPoint { x: x, y: y };
+
+        // Append to trail
+        self.trail.push_back(trail_point);
+        while self.trail.len() > TRAIL_MAX_POINTS {
+            self.trail.pop_front();
+        }
     }
 
     pub fn get_arm_state(&self) -> Vec<ArmPoint> {
@@ -105,5 +130,9 @@ impl PhasorAnimation {
             })
             .map(|(s, m)| { ArmPoint { x: s.0, y: s.1, r: m } })
             .collect()
+    }
+
+    pub fn get_trail_state(&self) -> Vec<TrailPoint> {
+        self.trail.clone().into()
     }
 }
