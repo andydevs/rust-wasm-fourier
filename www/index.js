@@ -63,45 +63,44 @@ let maxpoints = 100
 
 animate(({ dt }) => {
     pAni.update(dt)
-    let state = pAni.get_state()
+    let arm_state = pAni.get_arm_state()
+    let arm_radii = pAni.get_arm_radii()
+
+    // Construct arm from state
+    let arm = arm_state
+        .map((s) => ({
+            x: originX + s.x,
+            y: originY + s.y
+        }))
+    let last = arm[arm.length - 1]
+    points.push(last)
+    while (points.length > maxpoints) {
+        points.shift()
+    }
 
     ctx.clearRect(0, 0, width, height)
     
     ctx.strokeStyle = '#cccccc'
+    ctx.lineWidth = 1
     ctx.beginPath()
-    let x = originX
-    let y = originY
-    ctx.moveTo(x, y)
-    for (let p of state) {
-        x += p.real
-        y += p.imag
-        ctx.lineTo(x, y)
-    }
+    ctx.moveTo(originX, originY)
+    arm.forEach(({ x, y }) => { ctx.lineTo(x, y) })
     ctx.stroke()
 
-    ctx.strokeStyle = '#333333'
-    x = originX
-    y = originY
-    for (let p of state) {
+    ctx.strokeStyle = '#999999'
+    ctx.lineWidth = 1
+    arm.forEach(({x, y}, i) => {
         ctx.beginPath()
-        ctx.arc(x, y, p.magnitude(), 0, Math.PI*2)
+        ctx.arc(x, y, arm_radii[i], 0, 2*Math.PI)
         ctx.stroke()
-        x += p.real
-        y += p.imag
-    }
-
-    points.push({ x, y })
-    while (points.length >= maxpoints) {
-        points.shift()
-    }
+    })
 
     ctx.strokeStyle = '#ffffff'
     ctx.lineWidth = 2
     ctx.beginPath()
     ctx.moveTo(points[0].x, points[0].y)
-    for (let {x, y} of points.slice(1)) {
+    points.slice(1).forEach(({ x, y }) => {
         ctx.lineTo(x, y)
-    }
+    })
     ctx.stroke()
-    ctx.lineWidth = 1
 })
