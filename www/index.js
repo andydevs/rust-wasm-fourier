@@ -52,46 +52,53 @@ function getNewPath(e) {
 // ctx.rect(originX - rwidth/2, originY - rheight/2, rwidth, rheight)
 // ctx.stroke()
 
-// Draw phasor
-let pAni = wasm.PhasorAnimation.simple();
+function drawWithStyle(color, width, func) {
+    let old_style = ctx.strokeStyle
+    let old_width = ctx.lineWidth;
+    try {
+        ctx.strokeStyle = color
+        ctx.lineWidth = width
+        func()
+    }
+    finally {
+        ctx.strokeStyle = old_style
+        ctx.lineWidth = old_width
+    }
+}
 
-
-animate(({ dt }) => {
-    pAni.update(dt);
-    let arm_state = pAni.get_arm_state();
-    let trail = pAni.get_trail_state();
-
-    // Construct arm from state
-    let arm = arm_state.map((s) => ({
-        x: originX + s.x,
-        y: originY + s.y,
-        r: s.r
-    }))
-
-    ctx.clearRect(0, 0, width, height)
-
-    ctx.strokeStyle = "#555";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(originX, originY)
-    arm.forEach(({ x, y }) => {
-        ctx.lineTo(x, y)
-    })
-    ctx.stroke()
-
-    ctx.strokeStyle = "#333"
-    ctx.lineWidth = 1;
-    arm.forEach(({ x, y, r }) => {
+function drawPath(points, color='#fff', width=1) {
+    drawWithStyle(color, width, () => {
         ctx.beginPath()
-        ctx.arc(x, y, r, 0, 2 * Math.PI)
+        points.forEach(({ x, y }, i) => {
+            ctx[i == 0 ? 'moveTo' : 'lineTo'](x, y)
+        })
         ctx.stroke()
     })
+}
 
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 3
-    ctx.beginPath()
-    trail.forEach(({ x, y }, i) => {
-        ctx[i == 0 ? 'moveTo' : 'lineTo'](originX + x, originY + y)
+function drawCircles(circles, color='#fff', width=1) {
+    drawWithStyle(color, width, () => {
+        circles.forEach(({ x, y, r }) => {
+            ctx.beginPath()
+            ctx.arc(x, y, r, 0, 2 * Math.PI)
+            ctx.stroke()
+        })
     })
-    ctx.stroke()
+}
+
+// Draw phasor
+let pAni = wasm.PhasorAnimation.randomized();
+
+animate(({ dt }) => {
+    ctx.clearRect(0, 0, width, height)
+    
+    pAni.update(dt);
+    let arm = pAni.get_arm_state(originX, originY);
+    let trail = pAni.get_trail_state(originX, originY);
+    console.log(arm)
+
+    // Draw Arm
+    drawPath(arm, '#555')
+    drawCircles(arm, '#333')
+    drawPath(trail, '#fff', 3)
 });

@@ -20,9 +20,9 @@ use std::f64::consts::PI;
 use js_sys::Math::random;
 use std::collections::VecDeque;
 
-const PHASOR_NUMBER: i32 = 24;
+const PHASOR_NUMBER: i32 = 10;
 const FUNDAMENTAL_FREQ: f64 = 1.;
-const MAX_RAD: f64 = 100.0;
+const MAX_RAD: f64 = 50.0;
 const TRAIL_MAX_POINTS: usize = 100;
 
 #[wasm_bindgen]
@@ -119,20 +119,27 @@ impl PhasorAnimation {
         }
     }
 
-    pub fn get_arm_state(&self) -> Vec<ArmPoint> {
-        self.phasors.iter()
-            .scan((0., 0.), |s, p| {
-                let (x, y) = *s;
-                let new_x = x + p.real;
-                let new_y = y + p.imag;
-                *s = (new_x, new_y);
-                return Some((*s, p.magnitude()))
+    pub fn get_arm_state(&self, origin_x: f64, origin_y: f64) -> Vec<ArmPoint> {
+        let origin = (origin_x, origin_y);
+        let mut arm_xy: Vec<(f64, f64)> = self.phasors.iter()
+            .scan(origin, |s,p| {
+                *s = (s.0 + p.real, s.1 + p.imag);
+                Some(*s)
             })
-            .map(|(s, m)| { ArmPoint { x: s.0, y: s.1, r: m } })
+            .collect();
+        arm_xy.insert(0, origin);
+        let mut arm_radii: Vec<f64> = self.phasors.iter()
+            .map(Phasor::magnitude)
+            .collect();
+        arm_radii.push(0.0);
+        std::iter::zip(arm_xy, arm_radii)
+            .map(|((x, y), r)| { ArmPoint { x: x, y: y, r: r } })
             .collect()
     }
 
-    pub fn get_trail_state(&self) -> Vec<TrailPoint> {
-        self.trail.clone().into()
+    pub fn get_trail_state(&self, origin_x: f64, origin_y: f64) -> Vec<TrailPoint> {
+        self.trail.iter()
+            .map(|p| { TrailPoint { x: p.x + origin_x, y: p.y + origin_y } })
+            .collect()
     }
 }
