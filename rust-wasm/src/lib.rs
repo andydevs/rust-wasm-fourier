@@ -18,7 +18,6 @@ macro_rules! safe_div {
 use wasm_bindgen::prelude::*;
 use std::f64::consts::PI;
 use js_sys::Math::random;
-use std::collections::VecDeque;
 type Complex = num_complex::Complex<f64>;
 const I: Complex = Complex::I;
 
@@ -36,7 +35,7 @@ struct ArmPoint {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 struct TrailPoint {
     pub x: f64,
     pub y: f64
@@ -81,48 +80,104 @@ impl<'a> std::ops::Add for &'a TrailPoint {
     }
 }
 
+impl Default for TrailPoint {
+    fn default() -> Self {
+        Self { x: 0., y: 0. }
+    }
+}
+
+struct Ring<T, const N: usize> {
+    data: [T; N],
+    cursor: usize,
+}
+
+impl<T: Default + Copy + Clone, const N: usize> Ring<T, N> {
+    fn init() -> Self {
+        Self {
+            data: [T::default(); N],
+            cursor: 0
+        }
+    }
+
+    fn push(&mut self, t: T) {
+        self.data[self.cursor] = t;
+        self.cursor = (self.cursor + 1) % N;
+    }
+}
+
+struct RingIterator<'t, T> {
+    data: &'t [T],
+    offset: usize,
+    max: usize,
+    index: usize
+}
+
+impl<'t, T> RingIterator<'t, T> {
+    fn new(data: &'t [T], offset: usize, max: usize) -> Self {
+        Self { data: data, offset: offset, max: max, index: 0 }
+    }
+}
+
+impl<'t, T: Clone> Iterator for RingIterator<'t, T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<T> {
+        if self.index > self.max { return None }
+        let o = (self.index + self.offset) % self.max;
+        let e: T = self.data[o].clone();
+        self.index = self.index + 1;
+        Some(e)
+    }
+}
+
+impl<'t, T: Default + Copy + 't, const N: usize> IntoIterator for Ring<T, N> {
+    type Item = T;
+    type IntoIter = RingIterator<'t, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        RingIterator::new(&self.data, self.cursor, N)
+    }
+}
+
+
 #[wasm_bindgen]
 struct PhasorAnimation {
     phasors: Vec<Complex>,
-    trail: VecDeque<TrailPoint>
-}
-
-fn rotor(n: f64, dt: f64) -> Complex {
-    (-FUNDAMENTAL_FREQ*n*dt*Complex::i()).exp()
+    trail: Ring<TrailPoint, { TRAIL_MAX_POINTS }>
 }
 
 #[wasm_bindgen]
 impl PhasorAnimation {
-    fn frequencies() -> impl Iterator<Item = i32> {
+    fn frequencies() -> impl Iterator<Item = f64> {
         let a = (1..PHASOR_NUMBER).flat_map(|i| { [i, -i] });
-        let z = std::iter::once(0 as i32);
-        z.chain(a)
+        let z = std::iter::once(0);
+        z.chain(a).map(|i| { i as f64 })
     }
     
-    fn build_from_map(f: impl (Fn(i32) -> Complex)) -> Self
+    fn build_from_map(f: impl (Fn(f64) -> Complex)) -> Self
     {
         Self { 
             phasors: PhasorAnimation::frequencies().map(f).collect(),
-            trail: VecDeque::new()
+            trail: Ring::init()
         }
     }
     
     pub fn simple() -> Self {
-        Self::build_from_map(|i| { 
-            (PI/2.*I).exp() * safe_div!(MAX_RAD, (i as f64), 0.0)
+        Self::build_from_map(|n| { 
+            (PI/2.*I).exp() * safe_div!(MAX_RAD, n, 0.0)
         })
     }
     
     pub fn randomized() -> Self {
-        Self::build_from_map(|i| { 
-            (2.*PI * random() * I).exp() * safe_div!(MAX_RAD, (i as f64), 0.0)
+        Self::build_from_map(|n| { 
+            (2.*PI * random() * I).exp() * safe_div!(MAX_RAD, n, 0.0)
         })
     }
 
     pub fn update(&mut self, dt: f64) {
         // Determine rotors
         let rotors: Vec<Complex> = PhasorAnimation::frequencies()
-            .map(|n| { rotor(n as f64, dt) })
+            .map(|n| { (-FUNDAMENTAL_FREQ*n*dt*Complex::i()).exp() })
             .collect();
         
         // Rotate Phasors
@@ -135,10 +190,7 @@ impl PhasorAnimation {
             .iter().sum::<Complex>().into();
 
         // Append to trail
-        self.trail.push_back(trail_point);
-        while self.trail.len() > TRAIL_MAX_POINTS {
-            self.trail.pop_front();
-        }
+        self.trail.push(trail_point);
     }
 
     pub fn get_arm_state(&self, origin_x: f64, origin_y: f64) -> Vec<ArmPoint> {
