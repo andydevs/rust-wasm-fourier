@@ -91,6 +91,29 @@ struct Ring<T, const N: usize> {
     cursor: usize,
 }
 
+struct RingIterator<'r, T, const N: usize> {
+    ring: &'r Ring<T, N>,
+    index: usize
+}
+
+impl<'r, T, const N: usize> RingIterator<'r, T, N> {
+    fn new(r: &'r Ring<T, N>) -> Self {
+        Self { ring: r, index: 0 }
+    }
+}
+
+impl<'r, T, const N: usize> Iterator for RingIterator<'r, T, N> {
+    type Item = &'r T;
+
+    fn next(&mut self) -> Option<&'r T> {
+        if self.index >= N { return None }
+        let o = (self.index + self.ring.cursor) % N;
+        let d = &self.ring.data[o];
+        self.index += 1;
+        Some(d)
+    }
+}
+
 impl<T: Default + Copy + Clone, const N: usize> Ring<T, N> {
     fn init() -> Self {
         Self {
@@ -103,42 +126,11 @@ impl<T: Default + Copy + Clone, const N: usize> Ring<T, N> {
         self.data[self.cursor] = t;
         self.cursor = (self.cursor + 1) % N;
     }
-}
 
-struct RingIterator<'t, T> {
-    data: &'t [T],
-    offset: usize,
-    max: usize,
-    index: usize
-}
-
-impl<'t, T> RingIterator<'t, T> {
-    fn new(data: &'t [T], offset: usize, max: usize) -> Self {
-        Self { data: data, offset: offset, max: max, index: 0 }
+    fn iter<'r>(&'r self) -> RingIterator<'r, T, N> {
+        RingIterator::new(self)
     }
 }
-
-impl<'t, T: Clone> Iterator for RingIterator<'t, T> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<T> {
-        if self.index > self.max { return None }
-        let o = (self.index + self.offset) % self.max;
-        let e: T = self.data[o].clone();
-        self.index = self.index + 1;
-        Some(e)
-    }
-}
-
-impl<'t, T: Default + Copy + 't, const N: usize> IntoIterator for Ring<T, N> {
-    type Item = T;
-    type IntoIter = RingIterator<'t, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        RingIterator::new(&self.data, self.cursor, N)
-    }
-}
-
 
 #[wasm_bindgen]
 struct PhasorAnimation {
