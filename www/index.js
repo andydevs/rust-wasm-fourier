@@ -46,8 +46,7 @@ function getNewPath(e) {
 // ctx.stroke(new Path2D(path))
 
 // Display Rect
-// let rwidth = 200
-// let rheight = 200
+let rsize = 200
 // ctx.beginPath()
 // ctx.rect(originX - rwidth/2, originY - rheight/2, rwidth, rheight)
 // ctx.stroke()
@@ -98,6 +97,13 @@ animate(({ dt }) => {
     console.log(arm)
 
     // Draw Arm
+    drawWithStyle('#0af',1,() => {
+        ctx.beginPath()
+        ctx.rect(originX - rsize/2, 
+                 originY - rsize/2, 
+                 rsize, rsize)
+        ctx.stroke()
+    })
     drawPath(arm, '#555')
     drawCircles(arm, '#333')
     drawPath(trail, '#fff', 3)
