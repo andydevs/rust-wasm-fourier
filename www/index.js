@@ -85,8 +85,26 @@ function drawCircles(circles, color='#fff', width=1) {
     })
 }
 
+let randomRange = (a, b) => {
+    let t = Math.random()
+    return a*(1 - t) + b*t
+}
+let randomChoice = (elems) => {
+    let t = Math.floor(Math.random()*elems.length)
+    return elems[t]
+}
+
+let r = 200
+let t_a = randomRange(0, 2*Math.PI)
+let t_b = randomRange(0, 2*Math.PI)
+
+let x_a = r*Math.cos(t_a)
+let y_a = r*Math.sin(t_a)
+let x_b = r*Math.cos(t_b)
+let y_b = r*Math.sin(t_b)
+
 // Draw phasor
-let pAni = wasm.PhasorAnimation.randomized();
+let pAni = wasm.PhasorAnimation.linear(x_a, y_a, x_b, y_b);
 
 animate(({ dt }) => {
     ctx.clearRect(0, 0, width, height)
@@ -99,9 +117,8 @@ animate(({ dt }) => {
     // Draw Arm
     drawWithStyle('#0af',1,() => {
         ctx.beginPath()
-        ctx.rect(originX - rsize/2, 
-                 originY - rsize/2, 
-                 rsize, rsize)
+        ctx.moveTo(originX + x_a, originY + y_a)
+        ctx.lineTo(originX + x_b, originY + y_b)
         ctx.stroke()
     })
     drawPath(arm, '#555')

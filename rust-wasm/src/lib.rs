@@ -21,9 +21,9 @@ use js_sys::Math::random;
 type Complex = num_complex::Complex<f64>;
 const I: Complex = Complex::I;
 
-const PHASOR_NUMBER: i32 = 10;
-const FUNDAMENTAL_FREQ: f64 = 1.;
-const MAX_RAD: f64 = 50.0;
+const PHASOR_NUMBER: i32 = 5;
+const FUNDAMENTAL_FREQ: f64 = PI/2.;
+const MAX_RAD: f64 = 100.0;
 const TRAIL_MAX_POINTS: usize = 100;
 
 #[wasm_bindgen]
@@ -152,6 +152,15 @@ impl PhasorAnimation {
             phasors: PhasorAnimation::frequencies().map(f).collect(),
             trail: Ring::init()
         }
+    }
+
+    pub fn linear(x_0: f64, y_0: f64, x_1: f64, y_1: f64) -> Self {
+        let z_1 = Complex::new(x_1, y_1);
+        let z_0 = Complex::new(x_0, y_0);
+        Self::build_from_map(|n| { 
+            if n == 0.0 { (z_1 + z_0) / 2. }
+            else { (z_1 - z_0)*I / (2. * PI * n) }
+        })
     }
     
     pub fn simple() -> Self {
