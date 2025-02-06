@@ -9,22 +9,17 @@ macro_rules! log {
     }
 }
 
-macro_rules! safe_div {
-    ( $a:expr, $b:expr, $z:literal ) => {
-        (if ($b == $z) { $a } else { $a / $b })
-    }
-}
-
 use wasm_bindgen::prelude::*;
 use std::f64::consts::PI;
 use js_sys::Math::random;
 type Complex = num_complex::Complex<f64>;
 const I: Complex = Complex::I;
 
-const PHASOR_NUMBER: i32 = 5;
+const PHASOR_NUMBER: i32 = 25;
 const FUNDAMENTAL_FREQ: f64 = PI/2.;
 const MAX_RAD: f64 = 100.0;
 const TRAIL_MAX_POINTS: usize = 100;
+const NUM_SAMPLES: usize = 100;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
@@ -146,32 +141,51 @@ impl PhasorAnimation {
         z.chain(a).map(|i| { i as f64 })
     }
     
-    fn build_from_map(f: impl (Fn(f64) -> Complex)) -> Self
-    {
+    fn build_from_map(f: impl (Fn(f64) -> Complex)) -> Self {
         Self { 
             phasors: PhasorAnimation::frequencies().map(f).collect(),
             trail: Ring::init()
         }
     }
 
-    pub fn linear(x_0: f64, y_0: f64, x_1: f64, y_1: f64) -> Self {
+    fn fourier_series(f: impl (Fn(f64) -> Complex)) -> Self {
+        Self::build_from_map(|n| {
+            // 'proximate it or something
+            let dth = 2. * PI / (NUM_SAMPLES as f64);
+            (0..NUM_SAMPLES).map(|i| { (i as f64) * dth })
+                .map(|th| { f(th)*(-I*n*th).exp()*dth / (2. * PI) })
+                .sum()
+        })
+    }
+
+    pub fn line(x_0: f64, y_0: f64, x_1: f64, y_1: f64) -> Self {
         let z_1 = Complex::new(x_1, y_1);
         let z_0 = Complex::new(x_0, y_0);
-        Self::build_from_map(|n| { 
-            if n == 0.0 { (z_1 + z_0) / 2. }
-            else { (z_1 - z_0)*I / (2. * PI * n) }
+        Self::fourier_series(|theta: f64| {
+            let t = theta / (2.*PI);
+            z_0 * (1. - t) + z_1 * t
         })
     }
-    
-    pub fn simple() -> Self {
-        Self::build_from_map(|n| { 
-            (PI/2.*I).exp() * safe_div!(MAX_RAD, n, 0.0)
-        })
-    }
-    
-    pub fn randomized() -> Self {
-        Self::build_from_map(|n| { 
-            (2.*PI * random() * I).exp() * safe_div!(MAX_RAD, n, 0.0)
+
+    pub fn rectangle(width: f64, height: f64) -> Self {
+        let x = width / 2.;
+        let y = height / 2.;
+        let zs = [
+            Complex::new(x, -y),
+            Complex::new(x, y),
+            Complex::new(-x, y),
+            Complex::new(-x, -y)
+        ];
+        let n_zs = 4;
+        let omega: f64 = 2.*PI / (n_zs as f64);
+
+        Self::fourier_series(|theta: f64| {
+            let q = theta / omega;
+            let k = q.floor() as usize;
+            let t = q.fract();
+            let z_a = zs[k];
+            let z_b = zs[(k + 1) % n_zs];
+            z_a * (1. - t) + z_b * t
         })
     }
 

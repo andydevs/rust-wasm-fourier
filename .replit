@@ -1,4 +1,4 @@
-modules = ["nodejs-23"]
+modules = ["nodejs-23", "rust-stable"]
 run = "cd www && npm start"
 compile = "cd rust-wasm && wasm-pack build"
 
