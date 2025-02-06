@@ -41,16 +41,6 @@ function getNewPath(e) {
     return transformed;
 }
 
-// Display SVG
-// let path = getNewPath({})
-// ctx.stroke(new Path2D(path))
-
-// Display Rect
-let rsize = 200
-// ctx.beginPath()
-// ctx.rect(originX - rwidth/2, originY - rheight/2, rwidth, rheight)
-// ctx.stroke()
-
 function drawWithStyle(color, width, func) {
     let old_style = ctx.strokeStyle
     let old_width = ctx.lineWidth;
@@ -78,9 +68,11 @@ function drawPath(points, color='#fff', width=1) {
 function drawCircles(circles, color='#fff', width=1) {
     drawWithStyle(color, width, () => {
         circles.forEach(({ x, y, r }) => {
-            ctx.beginPath()
-            ctx.arc(x, y, r, 0, 2 * Math.PI)
-            ctx.stroke()
+            if (r > 0) {
+                ctx.beginPath()
+                ctx.arc(x, y, r, 0, 2 * Math.PI)
+                ctx.stroke()
+            }
         })
     })
 }
@@ -94,26 +86,57 @@ let randomChoice = (elems) => {
     return elems[t]
 }
 
+// Display SVG
+// let path = getNewPath({})
+// ctx.stroke(new Path2D(path))
+
+let rotateSpeed = 1
+
 let r_w = 300
 let r_h = 200
 
-// Draw phasor
-let pAni = wasm.PhasorAnimation.rectangle(r_w, r_h)
+// Phasor animation
+let pAni = wasm.PhasorAnim.rectangle(r_w, r_h)
+
+// Arm
+let arm = {
+    draw() {
+        let points = pAni.get_arm_state(originX, originY)
+        drawPath(points, '#555')
+        drawCircles(points, '#333')
+    }
+}
+
+// Trail Points
+let trail = { 
+    max: 100, 
+    points: [],
+    push(point) {
+        this.points.push(point)
+        while (this.points.length >= this.max) {
+            this.points.shift()
+        }
+    },
+    draw() { 
+        drawPath(this.points, '#fff', 3) 
+    }
+}
 
 animate(({ dt }) => {
     ctx.clearRect(0, 0, width, height)
     
-    pAni.update(dt);
-    let arm = pAni.get_arm_state(originX, originY);
-    let trail = pAni.get_trail_state(originX, originY);
+    pAni.update(rotateSpeed*dt, originX, originY);
+    let point = pAni.get_last_point(originX, originY);
+    trail.push(point)
 
-    // Draw Arm
+    // Draw SVG
     drawWithStyle('#0af',1,() => {
         ctx.beginPath()
         ctx.rect(originX - r_w/2, originY - r_h/2, r_w, r_h)
         ctx.stroke()
     })
-    drawPath(arm, '#555')
-    drawCircles(arm, '#333')
-    drawPath(trail, '#fff', 3)
+
+    // Draw Arm
+    arm.draw()
+    trail.draw()
 });
