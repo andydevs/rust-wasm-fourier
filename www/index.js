@@ -86,7 +86,7 @@ let rotateSpeed = 1;
 
 let numPhasors = 20
 let doRect = true;
-let doIntegral = true;
+let doIntegral = false;
 
 // Phasor animation
 let rect = { width: 300, height: 200 }
