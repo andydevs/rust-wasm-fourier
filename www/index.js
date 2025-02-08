@@ -5,9 +5,7 @@ const getBounds = require("svg-path-bounds");
 const msPerS = 1000;
 
 // Components
-let svgPathTextArea = document.getElementById("svgpath");
 let canvas = document.getElementById("render-canvas");
-let renderBtn = document.getElementById("render-button");
 let ctx = canvas.getContext("2d");
 ctx.strokeStyle = "#ffffff";
 let width = canvas.width;
@@ -84,20 +82,19 @@ function drawCircles(circles, color = "#fff", width = 1) {
     });
 }
 
-// Display SVG
-let path = getNewPath({});
-
 let rotateSpeed = 1;
+
+let numPhasors = 20
+let doRect = true;
+let doIntegral = true;
 
 // Phasor animation
 let rect = { width: 300, height: 200 }
-let pAni = wasm.PhasorAnim.rectangle(rect.width, rect.height);
+let line = { z0: { x: -100, y: 30 }, z1: { x: 200, y: 90 } }
 
-// Phasor animation
-// let z0 = { x: -100, y: 30 };
-// let z1 = { x: 200, y: 90 };
-// let pAni = wasm.PhasorAnim.line(z0.x, z0.y, z1.x, z1.y)
-
+let pAni = doRect
+    ? wasm.PhasorAnim.rectangle(numPhasors, rect.width, rect.height, doIntegral)
+    : wasm.PhasorAnim.line(numPhasors, line.z0.x, line.z0.y, line.z1.x, line.z1.y, doIntegral)
 
 // Arm
 let arm = {
@@ -134,19 +131,24 @@ animate(({ dt }) => {
     trail.update()
 
     // Draw SVG
-    // drawWithStyle('#0af',1,() => {
-    //     ctx.beginPath()
-    //     ctx.moveTo(originX + z0.x, originY + z0.y)
-    //     ctx.lineTo(originX + z1.x, originY + z1.y)
-    //     ctx.stroke()
-    // })
-    drawWithStyle("#0af", 1, () => {
-        ctx.beginPath();
-        ctx.rect(originX - rect.width / 2, 
-                 originY - rect.height / 2, 
-                 rect.width, rect.height);
-        ctx.stroke();
-    })
+    if (doRect) {
+        drawWithStyle("#0af", 1, () => {
+            ctx.beginPath();
+            ctx.rect(originX - rect.width / 2, 
+                     originY - rect.height / 2, 
+                     rect.width, rect.height);
+            ctx.stroke();
+        })
+    }
+    else {
+        drawWithStyle('#0af',1,() => {
+            ctx.beginPath()
+            ctx.moveTo(originX + line.z0.x, originY + line.z0.y)
+            ctx.lineTo(originX + line.z1.x, originY + line.z1.y)
+            ctx.stroke()
+        })
+    }
+    
 
     // Draw Arm
     arm.draw();
