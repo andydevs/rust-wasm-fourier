@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 use super::phasor::PhasorArray;
+use std::{rc::Rc, cell::RefCell};
 type Complex = num_complex::Complex<f64>;
-const I: Complex = Complex::I;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
@@ -17,22 +17,36 @@ impl From<Complex> for ArmPoint {
     }
 }
 
-pub fn get_arm_state(p: &PhasorArray, origin_x: f64, origin_y: f64) -> Vec<ArmPoint> {
-    let origin = Complex::new(origin_x, origin_y);
-    let mut arm_xy: Vec<Complex> = p.iter()
-        .scan(origin, |s, p| { *s = *s + p; Some(*s) })
-        .collect();
-    arm_xy.insert(0, origin);
-    let mut arm_radii: Vec<f64> = p.iter()
-        .map(|p| { p.norm() })
-        .collect();
-    arm_radii.push(0.0);
-    std::iter::zip(arm_xy, arm_radii)
-        .map(|(q, r)| { ArmPoint { x: q.re, y: q.im, r: r } })
-        .collect()
+#[wasm_bindgen]
+pub struct Arm {
+    #[wasm_bindgen(skip)]
+    phasors: Rc<RefCell<PhasorArray>>
 }
 
-pub fn get_last_point(p: &PhasorArray, origin_x: f64, origin_y: f64) -> ArmPoint {
-    let origin = Complex::new(origin_x, origin_y);
-    p.iter().fold(origin, |c, p| { c + p }).into()
+#[wasm_bindgen]
+impl Arm {
+    pub(crate) fn new(prc: &Rc<RefCell<PhasorArray>>) -> Self {
+        Self { phasors: Rc::clone(&prc) }
+    }
+    
+    pub fn get_state(&self, origin_x: f64, origin_y: f64) -> Vec<ArmPoint> {
+        let p = self.phasors.borrow();
+        let origin = Complex::new(origin_x, origin_y);
+        let mut arm_xy: Vec<Complex> = p.iter()
+            .scan(origin, |s, p| { *s = *s + p; Some(*s) })
+            .collect();
+        arm_xy.insert(0, origin);
+        let mut arm_radii: Vec<f64> = p.iter()
+            .map(|p| { p.norm() })
+            .collect();
+        arm_radii.push(0.0);
+        std::iter::zip(arm_xy, arm_radii)
+            .map(|(q, r)| { ArmPoint { x: q.re, y: q.im, r: r } })
+            .collect()
+    }
+    
+    pub fn get_last_point(&self, origin_x: f64, origin_y: f64) -> ArmPoint {
+        let origin = Complex::new(origin_x, origin_y);
+        self.phasors.borrow().iter().fold(origin, |c, p| { c + p }).into()
+    }
 }

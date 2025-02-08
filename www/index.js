@@ -27,116 +27,128 @@ function animate(onFrame) {
 }
 
 function getNewPath(e) {
+    console.groupCollapsed('getNewPath(', e, ')')
+    
     // Read SVG path from textarea
     let path = svgPathTextArea.value;
 
     // Transform SVG path
     let [l, u, r, d] = getBounds(path);
-    let pathCenterX = (r - l) / 2;
-    let pathCenterY = (d - u) / 2;
-    let transformed = svgpath(path)
-        .translate(originX - pathCenterX, originY - pathCenterY)
-        .toString();
+    let pathCenterX = (r + l) / 2;
+    let pathCenterY = (d + u) / 2;
+    console.log(l, u, r, d, pathCenterX, pathCenterY);
+    let p = svgpath(path).translate(
+        originX + pathCenterX,
+        originY + pathCenterY,
+    );
+    p.iterate(console.log);
+    let transformed = p.toString();
+    console.log(transformed);
 
+    console.groupEnd()
     return transformed;
 }
 
 function drawWithStyle(color, width, func) {
-    let old_style = ctx.strokeStyle
+    let old_style = ctx.strokeStyle;
     let old_width = ctx.lineWidth;
     try {
-        ctx.strokeStyle = color
-        ctx.lineWidth = width
-        func()
-    }
-    finally {
-        ctx.strokeStyle = old_style
-        ctx.lineWidth = old_width
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        func();
+    } finally {
+        ctx.strokeStyle = old_style;
+        ctx.lineWidth = old_width;
     }
 }
 
-function drawPath(points, color='#fff', width=1) {
+function drawPath(points, color = "#fff", width = 1) {
     drawWithStyle(color, width, () => {
-        ctx.beginPath()
+        ctx.beginPath();
         points.forEach(({ x, y }, i) => {
-            ctx[i == 0 ? 'moveTo' : 'lineTo'](x, y)
-        })
-        ctx.stroke()
-    })
+            ctx[i == 0 ? "moveTo" : "lineTo"](x, y);
+        });
+        ctx.stroke();
+    });
 }
 
-function drawCircles(circles, color='#fff', width=1) {
+function drawCircles(circles, color = "#fff", width = 1) {
     drawWithStyle(color, width, () => {
         circles.forEach(({ x, y, r }) => {
             if (r > 0) {
-                ctx.beginPath()
-                ctx.arc(x, y, r, 0, 2 * Math.PI)
-                ctx.stroke()
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, 2 * Math.PI);
+                ctx.stroke();
             }
-        })
-    })
-}
-
-let randomRange = (a, b) => {
-    let t = Math.random()
-    return a*(1 - t) + b*t
-}
-let randomChoice = (elems) => {
-    let t = Math.floor(Math.random()*elems.length)
-    return elems[t]
+        });
+    });
 }
 
 // Display SVG
-// let path = getNewPath({})
-// ctx.stroke(new Path2D(path))
+let path = getNewPath({});
 
-let rotateSpeed = 1
-
-let r_w = 300
-let r_h = 200
+let rotateSpeed = 1;
 
 // Phasor animation
-let pAni = wasm.PhasorAnim.rectangle(r_w, r_h)
+let rect = { width: 300, height: 200 }
+let pAni = wasm.PhasorAnim.rectangle(rect.width, rect.height);
+
+// Phasor animation
+// let z0 = { x: -100, y: 30 };
+// let z1 = { x: 200, y: 90 };
+// let pAni = wasm.PhasorAnim.line(z0.x, z0.y, z1.x, z1.y)
+
 
 // Arm
 let arm = {
     draw() {
-        let points = pAni.get_arm_state(originX, originY)
-        drawPath(points, '#555')
-        drawCircles(points, '#333')
-    }
-}
+        let points = pAni.get_arm_state(originX, originY);
+        drawPath(points, "#555");
+        drawCircles(points, "#333");
+    },
+};
 
 // Trail Points
-let trail = { 
-    max: 100, 
+let trail = {
+    max: 100,
     points: [],
     push(point) {
-        this.points.push(point)
+        this.points.push(point);
         while (this.points.length >= this.max) {
-            this.points.shift()
+            this.points.shift();
         }
     },
-    draw() { 
-        drawPath(this.points, '#fff', 3) 
-    }
-}
+    update() {
+        let point = pAni.get_last_point(originX, originY)
+        this.push(point)
+    },
+    draw() {
+        drawPath(this.points, "#fff", 3);
+    },
+};
 
 animate(({ dt }) => {
-    ctx.clearRect(0, 0, width, height)
-    
-    pAni.update(rotateSpeed*dt, originX, originY);
-    let point = pAni.get_last_point(originX, originY);
-    trail.push(point)
+    ctx.clearRect(0, 0, width, height);
+
+    pAni.update(rotateSpeed * dt, originX, originY);
+    trail.update()
 
     // Draw SVG
-    drawWithStyle('#0af',1,() => {
-        ctx.beginPath()
-        ctx.rect(originX - r_w/2, originY - r_h/2, r_w, r_h)
-        ctx.stroke()
+    // drawWithStyle('#0af',1,() => {
+    //     ctx.beginPath()
+    //     ctx.moveTo(originX + z0.x, originY + z0.y)
+    //     ctx.lineTo(originX + z1.x, originY + z1.y)
+    //     ctx.stroke()
+    // })
+    drawWithStyle("#0af", 1, () => {
+        ctx.beginPath();
+        ctx.rect(originX - rect.width / 2, 
+                 originY - rect.height / 2, 
+                 rect.width, rect.height);
+        ctx.stroke();
     })
 
     // Draw Arm
-    arm.draw()
-    trail.draw()
+    arm.draw();
+    trail.draw();
 });

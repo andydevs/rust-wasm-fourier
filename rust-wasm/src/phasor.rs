@@ -1,9 +1,7 @@
-use wasm_bindgen::prelude::*;
 use std::f64::consts::PI;
 type Complex = num_complex::Complex<f64>;
-const I: Complex = Complex::I;
 
-const PHASOR_NUMBER: i32 = 10;
+const PHASOR_NUMBER: i32 = 25;
 const NUM_SAMPLES: usize = 100;
 
 pub struct PhasorArray {
@@ -17,18 +15,19 @@ impl PhasorArray {
         z.chain(a).map(|i| { i as f64 })
     }
 
-    pub fn build_from_map(f: impl (Fn(f64) -> Complex)) -> Self {
+    pub fn fourier_series(f: impl (Fn(f64) -> Complex)) -> Self {
         Self { 
             phasors: Self::frequencies().map(f).collect()
         }
     }
 
-    pub fn fourier_series(f: impl (Fn(f64) -> Complex)) -> Self {
-        Self::build_from_map(|n| {
+    #[allow(dead_code)]
+    pub fn fourier_transform(f: impl (Fn(f64) -> Complex)) -> Self {
+        Self::fourier_series(|n| {
             // 'proximate it or something
             let dth = 2. * PI / (NUM_SAMPLES as f64);
             (0..NUM_SAMPLES).map(|i| { (i as f64) * dth })
-                .map(|th| { f(th)*(-I*n*th).exp()*dth / (2. * PI) })
+                .map(|th| { f(th)*(-Complex::I*n*th).exp()*dth / (2. * PI) })
                 .sum()
         })
     }
