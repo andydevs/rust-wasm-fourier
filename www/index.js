@@ -24,29 +24,6 @@ function animate(onFrame) {
     requestAnimationFrame(loop);
 }
 
-function getNewPath(e) {
-    console.groupCollapsed('getNewPath(', e, ')')
-    
-    // Read SVG path from textarea
-    let path = svgPathTextArea.value;
-
-    // Transform SVG path
-    let [l, u, r, d] = getBounds(path);
-    let pathCenterX = (r + l) / 2;
-    let pathCenterY = (d + u) / 2;
-    console.log(l, u, r, d, pathCenterX, pathCenterY);
-    let p = svgpath(path).translate(
-        originX + pathCenterX,
-        originY + pathCenterY,
-    );
-    p.iterate(console.log);
-    let transformed = p.toString();
-    console.log(transformed);
-
-    console.groupEnd()
-    return transformed;
-}
-
 function drawWithStyle(color, width, func) {
     let old_style = ctx.strokeStyle;
     let old_width = ctx.lineWidth;
@@ -82,32 +59,60 @@ function drawCircles(circles, color = "#fff", width = 1) {
     });
 }
 
-let rotateSpeed = 1;
-
-let numPhasors = 10
-let doRect = true;
-
 // Phasor animation
-let rect = { width: 300, height: 200 }
-let line = { z0: { x: -100, y: 30 }, z1: { x: 200, y: 90 } }
+let rect = { 
+    width: 300, 
+    height: 200,
 
-let builder = wasm.Path.new()
-if (doRect) {
-    let x = rect.width/2
-    let y = rect.height/2
-    builder.move_to( x, -y)
-    builder.line_to( x,  y)
-    builder.line_to(-x,  y)
-    builder.line_to(-x, -y)
-    builder.close()
-}
-else {
-    builder.move_to(line.z0.x, line.z0.y)
-    builder.line_to(line.z1.x, line.z1.y)
-    builder.close()
+    getPath() {
+        let path = wasm.Path.new()
+        let x = this.width/2
+        let y = this.height/2
+        path.move_to( x, -y)
+        path.line_to( x,  y)
+        path.line_to(-x,  y)
+        path.line_to(-x, -y)
+        path.close()
+        return path
+    },
+
+    draw(ctx, originX, originY) {
+        drawWithStyle("#0af", 1, () => {
+            ctx.beginPath();
+            ctx.rect(originX - this.width / 2, 
+                     originY - this.height / 2, 
+                     this.width, this.height);
+            ctx.stroke();
+        })
+    }
 }
 
-let pAni = wasm.PhasorAnim.from_builder(numPhasors, builder)
+let line = { 
+    z0: { x: -100, y: 30 }, 
+    z1: { x: 200, y: 90 },
+
+    getPath() {
+        let path = wasm.Path.new()
+        path.move_to(this.z0.x, this.z0.y)
+        path.line_to(this.z1.x, this.z1.y)
+        path.close()
+        return path
+    },
+
+    draw(ctx, originX, originY) {
+        drawWithStyle('#0af',1,() => {
+            ctx.beginPath()
+            ctx.moveTo(originX + this.z0.x, originY + this.z0.y)
+            ctx.lineTo(originX + this.z1.x, originY + this.z1.y)
+            ctx.stroke()
+        })
+    }
+}
+
+let obj = rect
+let rotateSpeed = 1
+let numPhasors = 10
+let pAni = wasm.PhasorAnim.from_path(numPhasors, obj.getPath())
 
 // Arm
 let arm = {
@@ -115,7 +120,7 @@ let arm = {
         let points = pAni.get_arm_state(originX, originY);
         drawPath(points, "#555");
         drawCircles(points, "#333");
-    },
+    }
 };
 
 // Trail Points
@@ -144,26 +149,9 @@ animate(({ dt }) => {
     trail.update()
 
     // Draw SVG
-    if (doRect) {
-        drawWithStyle("#0af", 1, () => {
-            ctx.beginPath();
-            ctx.rect(originX - rect.width / 2, 
-                     originY - rect.height / 2, 
-                     rect.width, rect.height);
-            ctx.stroke();
-        })
-    }
-    else {
-        drawWithStyle('#0af',1,() => {
-            ctx.beginPath()
-            ctx.moveTo(originX + line.z0.x, originY + line.z0.y)
-            ctx.lineTo(originX + line.z1.x, originY + line.z1.y)
-            ctx.stroke()
-        })
-    }
-    
+    obj.draw(ctx, originX, originY)
 
-    // Draw Arm
+    // Draw Arm and trail
     arm.draw();
     trail.draw();
 });

@@ -1,8 +1,7 @@
 mod utils;
 mod phasor;
 mod arm;
-mod pathelem;
-mod builder;
+mod path;
 
 // console.log
 extern crate web_sys;
@@ -17,7 +16,7 @@ use wasm_bindgen::prelude::*;
 use std::{rc::Rc, cell::RefCell};
 use phasor::PhasorArray;
 use arm::{Arm, ArmPoint};
-use builder::Path;
+use path::Path;
 
 #[wasm_bindgen]
 pub struct PhasorAnim {
@@ -33,8 +32,8 @@ impl PhasorAnim {
         PhasorAnim { phasors: prc, arm: arm }
     }
 
-    pub fn from_builder(num_phasors: usize, builder: &Builder) -> Self {
-        let phasors = builder.to_phasors(num_phasors);
+    pub fn from_path(num_phasors: usize, path: &Path) -> Self {
+        let phasors = path.to_phasors(num_phasors);
         Self::new(phasors)
     }
 

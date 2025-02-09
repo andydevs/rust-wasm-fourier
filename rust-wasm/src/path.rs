@@ -1,14 +1,15 @@
+mod element;
 
 use wasm_bindgen::prelude::*;
-use crate::phasor::PhasorArray;
-use crate::pathelem::{PathElem, Line};
+use element::*;
 use std::f64::consts::PI;
 type Complex = num_complex::Complex<f64>;
 const I: Complex = Complex::I;
+use crate::phasor::PhasorArray;
 
 #[wasm_bindgen]
 pub struct Path {
-    elements: Vec<Box<dyn PathElem>>,
+    elements: Vec<Box<dyn PathElement>>,
     path_start: Complex,
     path_current: Complex,
 }
@@ -17,13 +18,13 @@ pub struct Path {
 impl Path {
     pub fn new() -> Self {
         Self { 
-            elements: Vec::<Box<dyn PathElem>>::new(),
+            elements: Vec::<Box<dyn PathElement>>::new(),
             path_start: Complex::new(0.0, 0.0),
             path_current: Complex::new(0.0, 0.0)
         }
     }
 
-    fn add_element(&mut self, p: Box<dyn PathElem>) {
+    fn add_element(&mut self, p: Box<dyn PathElement>) {
         self.elements.push(p);
     }
 
