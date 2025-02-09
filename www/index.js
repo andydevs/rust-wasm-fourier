@@ -27,8 +27,10 @@ function animate(onFrame) {
 // Transform SVG path
 function transformPath(path, originX, originY) {
     let [l, u, r, d] = getBounds(path);
+    let cx = (r - l) / 2
+    let cy = (d - u) / 2
     return svgpath(path)
-        .translate(originX, originY)
+        .translate(originX - cx, originY - cy)
         .toString();
 }
 
@@ -77,23 +79,34 @@ let linesOnly = 'M 50 150 L 300 -200 L -50 -40 L -100 10 L -120 -100 L -300 -30 
 let heart = 'M140 20C73 20 20 74 20 140c0 135 136 170 228 303 88-132 229-173 229-303 0-66-54-120-120-120-48 0-90 28-109 69-19-41-60-69-108-69z'
 
 let svg = {
-    pathstr: linesOnly,
+    pathstr: heart,
 
     getPath() {
         let path = wasm.Path.new()
-        svgpath(this.pathstr).abs().iterate((e) => {
-            switch (e[0]) {
-                case 'M':
-                    path.move_to(e[1], e[2]);
-                case 'L':
-                    path.line_to(e[1], e[2]);
-                case 'Z':
-                    break;
-                default:
-                    console.error('Unsupported path element type! ' + e[0])
-            }
-        })
-        path.close()
+        let [l, u, r, d] = getBounds(this.pathstr)
+        let cx = (r - l) / 2
+        let cy = (d - u) / 2
+        svgpath(this.pathstr)
+            .abs()
+            .translate(-cx, -cy)
+            .iterate((e) => {
+                switch (e[0]) {
+                    case 'M':
+                        path.move_to(e[1], e[2]);
+                        break;
+                    case 'L':
+                        path.line_to(e[1], e[2]);
+                        break;
+                    case 'C':
+                        path.curve_to(e[1], e[2], e[3], e[4], e[5], e[6])
+                        break;
+                    case 'Z':
+                        path.close()
+                        break;
+                    default:
+                        console.error('Unsupported path element type!', e)
+                }
+            })
         return path
     },
 

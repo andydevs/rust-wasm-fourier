@@ -40,6 +40,16 @@ impl Path {
         self.path_current = z1;
     }
 
+    pub fn curve_to(&mut self, x_0: f64, y_0: f64, x_1: f64, y_1: f64, x: f64, y: f64) {
+        let z_0 = self.path_current.clone();
+        let z_1 = Complex::new(x_0, y_0);
+        let z_2 = Complex::new(x_1, y_1);
+        let z_3 = Complex::new(x, y);
+        self.path_current = z_3.clone();
+        let curve = CubicBezier { z_0: z_0, z_1: z_1, z_2: z_2, z_3: z_3 };
+        self.add_element(Box::new(curve));
+    }
+
     pub fn close(&mut self) {
         let line = Line { z_0: self.path_current.clone(), z_1: self.path_start.clone() };
         self.add_element(Box::new(line));
