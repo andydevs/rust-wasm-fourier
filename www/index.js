@@ -24,6 +24,19 @@ function animate(onFrame) {
     requestAnimationFrame(loop);
 }
 
+// Transform SVG path
+function transformPath(path, originX, originY) {
+    let [l, u, r, d] = getBounds(path);
+    let pathCenterX = (r + l) / 2;
+    let pathCenterY = (d + u) / 2;
+    return svgpath(path)
+        .translate(
+            originX - pathCenterX,
+            originY - pathCenterY,
+        )
+        .toString();
+}
+
 function drawWithStyle(color, width, func) {
     let old_style = ctx.strokeStyle;
     let old_width = ctx.lineWidth;
@@ -59,19 +72,53 @@ function drawCircles(circles, color = "#fff", width = 1) {
     });
 }
 
+let linesOnly = 'M 10 50 L 150 -150 L -150 -30 Z'
+let heart = 'M140 20C73 20 20 74 20 140c0 135 136 170 228 303 88-132 229-173 229-303 0-66-54-120-120-120-48 0-90 28-109 69-19-41-60-69-108-69z'
+
+let svg = {
+    pathstr: linesOnly,
+
+    getPath() {
+        let path = wasm.Path.new()
+        svgpath(this.pathstr).abs().iterate((e) => {
+            switch (e[0]) {
+                case 'M':
+                    path.move_to(e[1], e[2]);
+                case 'L':
+                    path.line_to(e[1], e[2]);
+                case 'Z':
+                    break;
+                default:
+                    console.error('Unsupported path element type! ' + e[0])
+            }
+        })
+        path.close()
+        return path
+    },
+
+    draw(ctx, originX, originY) {
+        let transformed = transformPath(this.pathstr, originX, originY)
+        drawWithStyle('#0af', 1, () => {
+            ctx.stroke(new Path2D(transformed))
+        })
+    }
+}
+
 // Phasor animation
 let rect = { 
+    x0: 50,
+    y0: 20,
     width: 300, 
     height: 200,
 
     getPath() {
         let path = wasm.Path.new()
-        let x = this.width/2
-        let y = this.height/2
-        path.move_to( x, -y)
-        path.line_to( x,  y)
-        path.line_to(-x,  y)
-        path.line_to(-x, -y)
+        let dx = this.width/2
+        let dy = this.height/2
+        path.move_to(this.x0 + dx, this.y0 - dy)
+        path.line_to(this.x0 + dx, this.y0 + dy)
+        path.line_to(this.x0 - dx, this.y0 + dy)
+        path.line_to(this.x0 - dx, this.y0 - dy)
         path.close()
         return path
     },
@@ -86,7 +133,6 @@ let rect = {
         })
     }
 }
-
 let line = { 
     z0: { x: -100, y: 30 }, 
     z1: { x: 200, y: 90 },
@@ -109,9 +155,9 @@ let line = {
     }
 }
 
-let obj = rect
-let rotateSpeed = 1
-let numPhasors = 10
+let obj = svg
+let rotateSpeed = 1.5
+let numPhasors = 15
 let pAni = wasm.PhasorAnim.from_path(numPhasors, obj.getPath())
 
 // Arm
