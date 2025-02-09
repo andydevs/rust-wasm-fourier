@@ -28,10 +28,14 @@ impl Arm {
     pub(crate) fn new(prc: &Rc<RefCell<PhasorArray>>) -> Self {
         Self { phasors: Rc::clone(&prc) }
     }
+
+    fn origin_from_xy(&self, origin_x: f64, origin_y: f64) -> Complex {
+        Complex::new(origin_x, origin_y)
+    }
     
     pub fn get_state(&self, origin_x: f64, origin_y: f64) -> Vec<ArmPoint> {
         let p = self.phasors.borrow();
-        let origin = Complex::new(origin_x, origin_y);
+        let origin = self.origin_from_xy(origin_x, origin_y);
         let mut arm_xy: Vec<Complex> = p.iter()
             .scan(origin, |s, p| { *s = *s + p; Some(*s) })
             .collect();
@@ -46,7 +50,7 @@ impl Arm {
     }
     
     pub fn get_last_point(&self, origin_x: f64, origin_y: f64) -> ArmPoint {
-        let origin = Complex::new(origin_x, origin_y);
+        let origin = self.origin_from_xy(origin_x, origin_y);
         self.phasors.borrow().iter().fold(origin, |c, p| { c + p }).into()
     }
 }

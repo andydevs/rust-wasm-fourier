@@ -27,26 +27,27 @@ function animate(onFrame) {
 // Transform SVG path
 function transformPath(path, originX, originY) {
     let [l, u, r, d] = getBounds(path);
-    let pathCenterX = (r + l) / 2;
-    let pathCenterY = (d + u) / 2;
     return svgpath(path)
-        .translate(
-            originX - pathCenterX,
-            originY - pathCenterY,
-        )
+        .translate(originX, originY)
         .toString();
 }
 
 function drawWithStyle(color, width, func) {
     let old_style = ctx.strokeStyle;
     let old_width = ctx.lineWidth;
+    let old_cap = ctx.lineCap
+    let old_join = ctx.lineJoin
     try {
         ctx.strokeStyle = color;
         ctx.lineWidth = width;
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
         func();
     } finally {
         ctx.strokeStyle = old_style;
         ctx.lineWidth = old_width;
+        ctx.lineCap = old_cap
+        ctx.lineJoin = old_join
     }
 }
 
@@ -72,7 +73,7 @@ function drawCircles(circles, color = "#fff", width = 1) {
     });
 }
 
-let linesOnly = 'M 10 50 L 150 -150 L -150 -30 Z'
+let linesOnly = 'M 50 150 L 300 -200 L -50 -40 L -100 10 L -120 -100 L -300 -30 Z'
 let heart = 'M140 20C73 20 20 74 20 140c0 135 136 170 228 303 88-132 229-173 229-303 0-66-54-120-120-120-48 0-90 28-109 69-19-41-60-69-108-69z'
 
 let svg = {
@@ -156,8 +157,8 @@ let line = {
 }
 
 let obj = svg
-let rotateSpeed = 1.5
-let numPhasors = 15
+let rotateSpeed = 1.25
+let numPhasors = 50
 let pAni = wasm.PhasorAnim.from_path(numPhasors, obj.getPath())
 
 // Arm
@@ -180,8 +181,7 @@ let trail = {
         }
     },
     update() {
-        let point = pAni.get_last_point(originX, originY)
-        this.push(point)
+        this.push(pAni.get_last_point(originX, originY))
     },
     draw() {
         drawPath(this.points, "#fff", 3);
