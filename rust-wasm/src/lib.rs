@@ -17,7 +17,7 @@ use wasm_bindgen::prelude::*;
 use std::{rc::Rc, cell::RefCell};
 use phasor::PhasorArray;
 use arm::{Arm, ArmPoint};
-use builder::Builder;
+use builder::Path;
 
 #[wasm_bindgen]
 pub struct PhasorAnim {

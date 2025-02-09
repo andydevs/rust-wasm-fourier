@@ -91,7 +91,7 @@ let doRect = true;
 let rect = { width: 300, height: 200 }
 let line = { z0: { x: -100, y: 30 }, z1: { x: 200, y: 90 } }
 
-let builder = wasm.Builder.new()
+let builder = wasm.Path.new()
 if (doRect) {
     let x = rect.width/2
     let y = rect.height/2

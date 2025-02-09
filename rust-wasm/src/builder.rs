@@ -1,3 +1,4 @@
+
 use wasm_bindgen::prelude::*;
 use crate::phasor::PhasorArray;
 use crate::pathelem::{PathElem, Line};
@@ -6,14 +7,14 @@ type Complex = num_complex::Complex<f64>;
 const I: Complex = Complex::I;
 
 #[wasm_bindgen]
-pub struct Builder {
+pub struct Path {
     elements: Vec<Box<dyn PathElem>>,
     path_start: Complex,
     path_current: Complex,
 }
 
 #[wasm_bindgen]
-impl Builder {
+impl Path {
     pub fn new() -> Self {
         Self { 
             elements: Vec::<Box<dyn PathElem>>::new(),
