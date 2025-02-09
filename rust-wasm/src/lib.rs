@@ -32,26 +32,9 @@ impl PhasorAnim {
         let arm = Arm::new(&prc);
         PhasorAnim { phasors: prc, arm: arm }
     }
-    
-    pub fn line(num_phasors: i32, x_0: f64, y_0: f64, x_1: f64, y_1: f64, use_integral: bool) -> Self {
-        let mut builder = Builder::new();
-        builder.line_xys(x_0, y_0, x_1, y_1);
 
-        let phasors = builder.to_phasors(num_phasors, use_integral);
-        Self::new(phasors)
-    }
-
-    pub fn rectangle(num_phasors: i32, width: f64, height: f64, use_integral: bool) -> Self {
-        let x = width / 2.;
-        let y = height / 2.;
-
-        let mut builder = Builder::new();
-        builder.line_xys( x, -y,  x,  y);
-        builder.line_xys( x,  y, -x,  y);
-        builder.line_xys(-x,  y, -x, -y);
-        builder.line_xys(-x, -y,  x, -y);
-        
-        let phasors = builder.to_phasors(num_phasors, use_integral);
+    pub fn from_builder(num_phasors: usize, builder: &Builder) -> Self {
+        let phasors = builder.to_phasors(num_phasors);
         Self::new(phasors)
     }
 

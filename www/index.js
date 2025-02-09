@@ -84,17 +84,30 @@ function drawCircles(circles, color = "#fff", width = 1) {
 
 let rotateSpeed = 1;
 
-let numPhasors = 20
+let numPhasors = 10
 let doRect = true;
-let doIntegral = false;
 
 // Phasor animation
 let rect = { width: 300, height: 200 }
 let line = { z0: { x: -100, y: 30 }, z1: { x: 200, y: 90 } }
 
-let pAni = doRect
-    ? wasm.PhasorAnim.rectangle(numPhasors, rect.width, rect.height, doIntegral)
-    : wasm.PhasorAnim.line(numPhasors, line.z0.x, line.z0.y, line.z1.x, line.z1.y, doIntegral)
+let builder = wasm.Builder.new()
+if (doRect) {
+    let x = rect.width/2
+    let y = rect.height/2
+    builder.move_to( x, -y)
+    builder.line_to( x,  y)
+    builder.line_to(-x,  y)
+    builder.line_to(-x, -y)
+    builder.close()
+}
+else {
+    builder.move_to(line.z0.x, line.z0.y)
+    builder.line_to(line.z1.x, line.z1.y)
+    builder.close()
+}
+
+let pAni = wasm.PhasorAnim.from_builder(numPhasors, builder)
 
 // Arm
 let arm = {
