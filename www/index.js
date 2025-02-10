@@ -75,11 +75,12 @@ function drawCircles(circles, color = "#fff", width = 1) {
     });
 }
 
-let linesOnly = 'M 50 150 L 300 -200 L -50 -40 L -100 10 L -120 -100 L -300 -30 Z'
 let heart = 'M140 20C73 20 20 74 20 140c0 135 136 170 228 303 88-132 229-173 229-303 0-66-54-120-120-120-48 0-90 28-109 69-19-41-60-69-108-69z'
 
-let svg = {
-    pathstr: heart,
+class SVGPath {
+    constructor(pathstr) {
+        this.pathstr = pathstr
+    }
 
     getPath() {
         let path = wasm.Path.new()
@@ -108,7 +109,7 @@ let svg = {
                 }
             })
         return path
-    },
+    }
 
     draw(ctx, originX, originY) {
         let transformed = transformPath(this.pathstr, originX, originY)
@@ -118,60 +119,10 @@ let svg = {
     }
 }
 
-// Phasor animation
-let rect = { 
-    x0: 50,
-    y0: 20,
-    width: 300, 
-    height: 200,
 
-    getPath() {
-        let path = wasm.Path.new()
-        let dx = this.width/2
-        let dy = this.height/2
-        path.move_to(this.x0 + dx, this.y0 - dy)
-        path.line_to(this.x0 + dx, this.y0 + dy)
-        path.line_to(this.x0 - dx, this.y0 + dy)
-        path.line_to(this.x0 - dx, this.y0 - dy)
-        path.close()
-        return path
-    },
-
-    draw(ctx, originX, originY) {
-        drawWithStyle("#0af", 1, () => {
-            ctx.beginPath();
-            ctx.rect(originX - this.width / 2, 
-                     originY - this.height / 2, 
-                     this.width, this.height);
-            ctx.stroke();
-        })
-    }
-}
-let line = { 
-    z0: { x: -100, y: 30 }, 
-    z1: { x: 200, y: 90 },
-
-    getPath() {
-        let path = wasm.Path.new()
-        path.move_to(this.z0.x, this.z0.y)
-        path.line_to(this.z1.x, this.z1.y)
-        path.close()
-        return path
-    },
-
-    draw(ctx, originX, originY) {
-        drawWithStyle('#0af',1,() => {
-            ctx.beginPath()
-            ctx.moveTo(originX + this.z0.x, originY + this.z0.y)
-            ctx.lineTo(originX + this.z1.x, originY + this.z1.y)
-            ctx.stroke()
-        })
-    }
-}
-
-let obj = svg
+let obj = new SVGPath(heart)
 let rotateSpeed = 1.25
-let numPhasors = 50
+let numPhasors = 100
 let pAni = wasm.PhasorAnim.from_path(numPhasors, obj.getPath())
 
 // Arm
@@ -197,7 +148,7 @@ let trail = {
         this.push(pAni.get_last_point(originX, originY))
     },
     draw() {
-        drawPath(this.points, "#fff", 3);
+        drawPath(this.points, "#ff0", 5);
     },
 };
 
