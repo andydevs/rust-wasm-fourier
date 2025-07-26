@@ -38,8 +38,7 @@ impl PhasorAnim {
     }
 
     pub fn update(&mut self, dt: f64) {
-        let mut p = self.phasors.borrow_mut();
-        p.update(dt);
+        self.phasors.borrow_mut().update(dt);
     }
 
     pub fn get_arm_state(&self, origin_x: f64, origin_y: f64) -> Vec<ArmPoint> {
