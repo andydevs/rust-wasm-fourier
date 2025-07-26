@@ -1,0 +1,50 @@
+name: Deploy
+on: 
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+jobs:
+  deploy:
+    permissions:
+      pages: write
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      # Setup
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+      - name: Setup Rust
+        uses: MatteoH2O1999/setup-rust@v1
+
+      # Rust
+      - name: Setup WasmPack
+        uses: jetli/wasm-pack-action@v0.4.0
+      - name: Build Rust Package
+        working-directory: ./rust-wasm
+        run: wasm-pack build
+      
+      # NodeJS
+      - name: Install Node Packages
+        working-directory: ./www
+        run: npm install
+      - name: Build Node Website
+        working-directory: ./www
+        run: npm run build
+
+      # Pages Artifact
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./www/dist
+      - name: Deploy to Pages
+        uses: actions/deploy-pages@v4
